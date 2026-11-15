@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observatoire des taux</title>
+<meta name="description" content="Courbe des taux, écart France-Allemagne, pente, risque d'une obligation et taux réels de l'épargne. Données officielles BCE et Eurostat, mises à jour chaque soir.">
+<style>
+:root { --encre:#16181d; --gris:#5d6470; --filet:#d9dce1; --fond:#f3f4f6; --papier:#ffffff; --accent:#1d3f72; --rouge:#b42318; --vert:#14532d;
+        --fr:#1d4f91; --de:#16181d; --it:#14532d; --es:#a16207; --s1:#1d4f91; --s2:#9aa1ab; --s3:#c2c7cf; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --encre:#e8eaed; --gris:#a2a8b2; --filet:#33373e; --fond:#1b1e23; --papier:#111316; --accent:#8fb3e8; --rouge:#f08a7e; --vert:#6fbf8a;
+        --fr:#7aa7e6; --de:#e8eaed; --it:#6fbf8a; --es:#e0b25a; --s1:#7aa7e6; --s2:#7d848f; --s3:#4b5059; } }
+:root[data-theme="dark"] { --encre:#e8eaed; --gris:#a2a8b2; --filet:#33373e; --fond:#1b1e23; --papier:#111316; --accent:#8fb3e8; --rouge:#f08a7e; --vert:#6fbf8a;
+        --fr:#7aa7e6; --de:#e8eaed; --it:#6fbf8a; --es:#e0b25a; --s1:#7aa7e6; --s2:#7d848f; --s3:#4b5059; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--papier); color:var(--encre); font:15px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif; font-variant-numeric:tabular-nums; }
+main { max-width:1180px; margin:0 auto; padding:28px 16px 48px; }
+header { border-bottom:2px solid var(--encre); padding-bottom:12px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; }
+h1 { font:600 32px/1.1 "Iowan Old Style", Georgia, serif; letter-spacing:-.01em; }
+header p { color:var(--gris); margin-top:6px; max-width:700px; }
+.meta { color:var(--gris); font-size:12.5px; text-align:right; line-height:1.6; }
+.meta a { color:inherit; }
+h2 { font:600 12px "Helvetica Neue", sans-serif; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin:0 0 8px; }
+h3 { font:600 20px/1.2 "Iowan Old Style", Georgia, serif; margin:0 0 4px; }
+.partie { margin-top:40px; padding-top:14px; border-top:2px solid var(--encre); }
+.partie > .intro { color:var(--gris); max-width:780px; margin-bottom:6px; }
+.essentiel { display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid var(--filet); border-bottom:1px solid var(--filet); }
+.essentiel div { padding:10px 12px; border-left:1px solid var(--filet); font-size:13.5px; }
+.essentiel div:first-child { border-left:0; padding-left:0; }
+.essentiel b { display:block; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+.essentiel span { color:var(--gris); font-size:12px; }
+@media (max-width:860px) { .essentiel { grid-template-columns:1fr 1fr; } .essentiel div { border-left:0; padding-left:0; } }
+ul.constats { padding-left:18px; margin-top:12px; max-width:900px; } ul.constats li { margin-bottom:5px; }
+.grille { display:grid; grid-template-columns:1fr 1fr; gap:34px; }
+.grille > * { min-width:0; }
+@media (max-width:900px) { .grille { grid-template-columns:1fr; gap:26px; } }
+section.bloc { margin-top:26px; }
+.explication { color:var(--gris); font-size:13.5px; margin-bottom:8px; }
+.entete { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.onglets { display:flex; border:1px solid var(--filet); border-radius:3px; overflow:hidden; font-size:12.5px; }
+.onglets button { font:inherit; padding:3px 9px; border:0; background:var(--papier); color:var(--encre); cursor:pointer; }
+.onglets button[aria-pressed=true] { background:var(--encre); color:var(--papier); }
+.graphe { position:relative; }
+.graphe svg { width:100%; height:auto; display:block; overflow:visible; }
+.graphe text { font-size:11px; fill:var(--gris); }
+.axe { stroke:var(--filet); } .zero { stroke:var(--gris); stroke-width:1; }
+.evt line { stroke:var(--gris); stroke-dasharray:2 3; } .evt circle { fill:var(--papier); stroke:var(--gris); }
+.legende { display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--gris); margin-top:4px; }
+.legende i { display:inline-block; width:16px; height:3px; vertical-align:middle; margin-right:5px; }
+.bulle { position:absolute; pointer-events:none; background:var(--papier); border:1px solid var(--filet); padding:6px 9px; font-size:12.5px; box-shadow:0 2px 8px rgba(0,0,0,.1); min-width:150px; display:none; z-index:2; }
+.bulle b { display:block; margin-bottom:2px; }
+.bulle div { display:flex; justify-content:space-between; gap:12px; }
+.cadre { background:var(--fond); padding:12px 14px; }
+.champs { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px 14px; margin:8px 0 12px; }
+.champs.cinq { grid-template-columns:repeat(5, 1fr); }
+@media (max-width:620px) { .champs, .champs.cinq { grid-template-columns:1fr 1fr; } }
+.champs label { display:flex; flex-direction:column; justify-content:flex-end; font-size:12.5px; color:var(--gris); }
+.champs input, .champs select { font:inherit; font-size:15px; padding:5px 7px; border:1px solid var(--filet); background:var(--papier); color:var(--encre); border-radius:3px; width:100%; }
+.champs input[type=range] { padding:0; border:0; accent-color:var(--accent); }
+.champs b { color:var(--encre); }
+.chiffres { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 16px; border-top:1px solid var(--filet); padding-top:10px; }
+.chiffres div { font-size:12.5px; color:var(--gris); }
+.chiffres b { display:block; font-size:20px; color:var(--encre); font-weight:600; }
+.gain { color:var(--vert) !important; } .perte { color:var(--rouge) !important; }
+.boutons { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 8px; }
+.boutons button { font:inherit; font-size:12.5px; padding:4px 10px; border:1px solid var(--filet); background:var(--papier); color:var(--encre); border-radius:14px; cursor:pointer; }
+.boutons button:hover { border-color:var(--encre); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; }
+th, td { padding:5px 8px; border-bottom:1px solid var(--filet); text-align:right; white-space:nowrap; }
+th { color:var(--gris); font-weight:600; font-size:12px; white-space:normal; }
+th:first-child, td:first-child { text-align:left; padding-left:0; }
+.note { color:var(--gris); font-size:12px; margin-top:6px; }
+footer { margin-top:40px; padding-top:10px; border-top:1px solid var(--filet); color:var(--gris); font-size:12px; }
+footer a { color:inherit; } footer b { color:var(--encre); }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <h1>Observatoire des taux</h1>
+    <p>Ce que coûte l'argent en zone euro, et ce que ça change : pour une salle de marchés comme pour un épargnant. Données officielles de la BCE et d'Eurostat, mises à jour chaque soir de semaine.</p>
+  </div>
+  <div class="meta" id="meta">Chargement des données…</div>
+</header>
+
+<section aria-label="L'essentiel">
+  <h2>L'essentiel</h2>
+  <div class="essentiel" id="essentiel"></div>
+  <ul class="constats" id="constats"></ul>
+</section>
+
+<div class="partie">
+  <h3>Côté marchés</h3>
+  <p class="intro">Ce que regarde un desk de taux : la forme de la courbe, l'écart entre pays, et le risque d'une position.</p>
+
+  <section class="bloc">
+    <div class="entete"><h2>L'écart à 10 ans avec l'Allemagne</h2>
+      <div class="onglets" id="periode-ecart"><button data-p="1993" aria-pressed="false">Depuis 1993</button><button data-p="2008" aria-pressed="true">Depuis 2008</button><button data-p="2020" aria-pressed="false">Depuis 2020</button></div></div>
+    <p class="explication">Ce qu'un pays paie de plus que l'Allemagne, l'emprunteur jugé le plus sûr de la zone euro, pour emprunter à 10 ans. Plus l'écart monte, plus les marchés doutent du pays.</p>
+    <div class="graphe"><svg id="g-ecart"></svg><div class="bulle"></div></div>
+    <div class="legende" id="l-ecart"></div>
+  </section>
+
+  <div class="grille">
+    <section class="bloc">
+      <h2>La courbe des taux</h2>
+      <p class="explication">Le taux auquel les États les mieux notés de la zone euro (AAA) empruntent, selon la durée du prêt.</p>
+      <div class="graphe"><svg id="g-courbe"></svg><div class="bulle"></div></div>
+      <div class="legende" id="l-courbe"></div>
+    </section>
+    <section class="bloc">
+      <h2>La pente : 10 ans moins 2 ans</h2>
+      <p class="explication">Positive : prêter longtemps rapporte plus. Négative (courbe inversée) : les marchés anticipent une baisse des taux, souvent un ralentissement.</p>
+      <div class="graphe"><svg id="g-pente"></svg><div class="bulle"></div></div>
+    </section>
+  </div>
+
+  <section class="bloc">
+    <h2>Rejouer une position sur l'écart France-Allemagne</h2>
+    <p class="explication">On achète 10 millions d'euros d'OAT à 10 ans et on vend du Bund pour que la position ne dépende que de l'écart entre les deux.
+      Elle gagne si l'écart se resserre, perd s'il s'élargit : résultat ≈ − sensibilité (DV01) × variation de l'écart en points de base.</p>
+    <div class="boutons" id="scenarios">
+      <button data-d="2012-06" data-f="2013-12">Après « Whatever it takes » (2012-2013)</button>
+      <button data-d="2024-05" data-f="">Avant la dissolution (mai 2024) → aujourd'hui</button>
+      <button data-d="2017-01" data-f="2017-06">Présidentielle 2017</button>
+    </div>
+    <div class="champs"><label>Entrée<input type="month" id="debut" value="2024-05"></label><label>Sortie (vide : dernier mois connu)<input type="month" id="fin"></label></div>
+    <div class="chiffres" id="r-position"></div>
+    <div class="graphe" style="margin-top:10px"><svg id="g-position"></svg><div class="bulle"></div></div>
+    <p class="note">Approximation pédagogique : taux moyens mensuels, sans portage ni coût de financement.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Le risque d'une obligation</h2>
+    <p class="explication">Quand les taux montent, le prix des obligations déjà émises baisse : personne ne veut d'un vieux coupon à 3 % si les nouvelles obligations paient 4 %.</p>
+    <div class="champs cinq">
+      <label>Nominal<select id="o-nominal"><option value="10000">10 000 €</option><option value="1000000" selected>1 million €</option><option value="10000000">10 millions €</option></select></label>
+      <label>Durée restante <b id="v-mat"></b><input type="range" id="o-mat" min="1" max="30" value="10"></label>
+      <label>Coupon <b id="v-cpn"></b><input type="range" id="o-cpn" min="0" max="8" step="0.25" value="3"></label>
+      <label>Taux du marché <b id="v-taux"></b><input type="range" id="o-taux" min="0" max="8" step="0.05" value="3"></label>
+      <label>Mouvement des taux <b id="v-choc"></b><input type="range" id="o-choc" min="-3" max="3" step="0.25" value="1"></label>
+    </div>
+    <div class="chiffres" id="r-obligation"></div>
+  </section>
+</div>
+
+<div class="partie">
+  <h3>Côté épargnants</h3>
+  <p class="intro">Ce que les taux et l'inflation changent pour l'épargne d'un client.</p>
+  <div class="grille">
+    <section class="bloc">
+      <h2>Ce que rapporte vraiment l'épargne</h2>
+      <p class="explication">Taux moins inflation sur un an. Sous zéro, l'argent perd du pouvoir d'achat même s'il « rapporte ».</p>
+      <div class="graphe"><svg id="g-reels"></svg><div class="bulle"></div></div>
+      <div class="legende" id="l-reels"></div>
+    </section>
+    <section class="bloc">
+      <h2>Le fonds euros suit les taux, avec retard</h2>
+      <p class="explication">Les assureurs placent surtout le fonds euros en obligations achetées au fil des ans : son rendement rattrape lentement la hausse des taux.</p>
+      <div style="overflow-x:auto"><table id="t-fonds"></table></div>
+      <p class="note">Fonds euros : taux moyen de revalorisation, contrats individuels, avant prélèvements sociaux (ACPR).</p>
+    </section>
+  </div>
+  <section class="bloc">
+    <h2>Pour un client qui détient des obligations</h2>
+    <div class="cadre" id="client"></div>
+  </section>
+</div>
+
+<footer id="pied">
+  Sources : Banque centrale européenne (courbe des taux AAA, taux de dépôt), Eurostat (taux à 10 ans par pays, inflation), service-public.gouv.fr (Livret A), ACPR (fonds euros).
+  Les calculs (prix, duration, DV01, position sur l'écart) sont faits en Python, exécutés dans la page avec le même code que les tests.
+  <a href="https://github.com/gabinebyklein/observatoire-taux">Code source et méthode</a>. Observatoire des taux, conçu par Gabin Eby Klein avec Claude.
+  <br><b>Document pédagogique : ne constitue ni un conseil en investissement ni une recommandation.</b>
+</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const nb = (x, d = 2) => (x < 0 ? "−" : "") + Math.abs(x).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }).replace(/[   ]/g, " ");
+const signe = (x, d = 2) => (x > 0 ? "+" : "") + nb(x, d);
+const euros = (x) => nb(x, 0) + " €";
+const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const mois = (m) => `${MOIS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
+const jour = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+const temps = (d) => Date.parse(d.length === 7 ? d + "-15" : d);
+let D = null, py = null, A = null, O = null;
+
+/* ---------- graphique en lignes, fait main (SVG) ---------- */
+function graphe(svg, { series, categories, unite = " %", zero = false, evenements = [], debut = null, hauteur = 280, entier = false, largeur = 800 }) {
+  const W = largeur, H = hauteur, L = 46, R = W - 10, T = 14, B = H - 26;
+  const cat = !!categories;
+  const pts = series.map((s) => s.points.filter(([x]) => cat || !debut || x >= debut));
+  const xs = cat ? categories.map((_, i) => i) : pts.flat().map(([x]) => temps(x));
+  const ys = pts.flat().map(([, y]) => y).concat(zero ? [0] : []);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const marge = (y1 - y0) * 0.08 || 0.5; y0 -= marge; y1 += marge;
+  const X = (v) => L + (v - x0) / (x1 - x0 || 1) * (R - L), Y = (v) => B - (v - y0) / (y1 - y0) * (B - T);
+  const px = (x) => X(cat ? x : temps(x));
+  const pas = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 50, 100, 250, 500, 1000].map((p) => p * (entier ? 1000 : 1)).find((p) => (y1 - y0) / p <= 6);
+  let s = "";
+  for (let v = Math.ceil(y0 / pas) * pas; v <= y1; v += pas)
+    s += `<line class="axe" x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${entier ? nb(v / 1000, 0) + " k€" : nb(v, pas < 1 ? (pas < 0.25 ? 1 : 2) : 0) + unite}</text>`;
+  if (zero && y0 < 0) s += `<line class="zero" x1="${L}" x2="${R}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  if (cat) categories.forEach((c, i) => (s += `<text x="${X(i)}" y="${B + 17}" text-anchor="middle">${c}</text>`));
+  else {
+    const a0 = new Date(x0).getFullYear(), a1 = new Date(x1).getFullYear(), saut = Math.max(1, Math.ceil((a1 - a0) / 9));
+    for (let a = a0 + 1; a <= a1; a += saut) s += `<text x="${X(Date.parse(a + "-01-01"))}" y="${B + 17}" text-anchor="middle">${a}</text>`;
+  }
+  evenements.filter(([m]) => !debut || m >= debut).forEach(([m, nom], i) => {
+    const x = X(temps(m));
+    s += `<g class="evt"><line x1="${x}" x2="${x}" y1="${T}" y2="${B}"/><circle cx="${x}" cy="${T + 2}" r="3.5"/><title>${nom}</title></g>`;
+  });
+  series.forEach((sr, i) => {
+    const p = pts[i]; if (!p.length) return;
+    s += `<path d="${p.map(([x, y], j) => `${j ? "L" : "M"}${px(x).toFixed(1)},${Y(y).toFixed(1)}`).join("")}" fill="none" stroke="${sr.couleur}" stroke-width="${sr.epais || 2}"${sr.tirets ? ` stroke-dasharray="${sr.tirets}"` : ""}/>`;
+    if (cat) p.forEach(([x, y]) => (s += `<circle cx="${px(x)}" cy="${Y(y)}" r="2.6" fill="${sr.couleur}"/>`));
+  });
+  s += `<line class="curseur" x1="0" x2="0" y1="${T}" y2="${B}" stroke="var(--encre)" visibility="hidden"/><rect x="${L}" y="${T}" width="${R - L}" height="${B - T}" fill="transparent"/>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = s;
+  const bulle = svg.parentElement.querySelector(".bulle"), curseur = svg.querySelector(".curseur"), zone = svg.querySelector("rect:last-of-type");
+  zone.onpointermove = (ev) => {
+    const box = svg.getBoundingClientRect(), vx = x0 + ((ev.clientX - box.left) / box.width * W - L) / (R - L) * (x1 - x0);
+    let ref = null;
+    const lignes = series.map((sr, i) => {
+      const p = pts[i]; if (!p.length) return "";
+      const k = p.reduce((b, pt, j) => Math.abs((cat ? pt[0] : temps(pt[0])) - vx) < Math.abs((cat ? p[b][0] : temps(p[b][0])) - vx) ? j : b, 0);
+      ref = ref || p[k][0];
+      return `<div><span style="color:${sr.couleur}">${sr.nom}</span><span>${entier ? euros(p[k][1]) : nb(p[k][1]) + unite}</span></div>`;
+    }).join("");
+    const x = px(ref);
+    curseur.setAttribute("x1", x); curseur.setAttribute("x2", x); curseur.setAttribute("visibility", "visible");
+    const evt = evenements.find(([m]) => !cat && m === String(ref).slice(0, 7));
+    bulle.innerHTML = `<b>${cat ? categories[ref] : ref.length === 7 ? mois(ref) : jour(ref)}</b>${lignes}${evt ? `<div style="margin-top:3px"><i>${evt[1]}</i></div>` : ""}`;
+    bulle.style.display = "block";
+    const gx = x / W * box.width;
+    bulle.style.left = (gx > box.width / 2 ? gx - bulle.offsetWidth - 10 : gx + 10) + "px"; bulle.style.top = "4px";
+  };
+  zone.onpointerleave = () => { bulle.style.display = "none"; curseur.setAttribute("visibility", "hidden"); };
+}
+const legende = (el, items) => ($(el).innerHTML = items.map(([n, c, t]) => `<span><i style="background:${c}${t ? ";height:2px;opacity:.7" : ""}"></i>${n}</span>`).join(""));
+
+/* ---------- écart, courbe, pente ---------- */
+function ecart(a, b) { const m = new Map(b); return a.filter(([d]) => m.has(d)).map(([d, v]) => [d, +(v - m.get(d)).toFixed(4)]); }
+let periode = "2008";
+function dessinerEcart() {
+  const de = D.dix_ans.DE;
+  graphe($("g-ecart"), { debut: periode, evenements: D.evenements, unite: " pt", zero: true, series: [
+    { nom: "France", couleur: "var(--fr)", points: ecart(D.dix_ans.FR, de), epais: 2.6 },
+    { nom: "Italie", couleur: "var(--it)", points: ecart(D.dix_ans.IT, de) },
+    { nom: "Espagne", couleur: "var(--es)", points: ecart(D.dix_ans.ES, de) }] });
+  legende("l-ecart", [["France", "var(--fr)"], ["Italie", "var(--it)"], ["Espagne", "var(--es)"], ["Événement (survoler le point)", "var(--gris)", 1]]);
+}
+
+function dessinerCourbe() {
+  const c = D.courbe, noms = { "3M": "3 m", "6M": "6 m", "1Y": "1 an", "2Y": "2", "3Y": "3", "5Y": "5", "7Y": "7", "10Y": "10", "15Y": "15", "20Y": "20", "30Y": "30 ans" };
+  const ser = [["aujourd_hui", "var(--s1)", 2.8], ["il_y_a_1_an", "var(--s2)", 1.8], ["il_y_a_3_ans", "var(--s3)", 1.8]];
+  graphe($("g-courbe"), { categories: c.maturites.map((m) => noms[m]), hauteur: 330, largeur: 520, series: ser.map(([k, coul, e]) => ({
+    nom: jour(c.dates[k]), couleur: coul, epais: e, points: c.maturites.map((m, i) => [i, c.taux[k][m]]) })) });
+  legende("l-courbe", ser.map(([k, coul]) => [`${{ aujourd_hui: "Dernier jour", il_y_a_1_an: "Il y a 1 an", il_y_a_3_ans: "Il y a 3 ans" }[k]} (${jour(c.dates[k])})`, coul]));
+}
+
+function dessinerPente() {
+  graphe($("g-pente"), { zero: true, unite: " pt", hauteur: 330, largeur: 520, series: [{ nom: "10 ans − 2 ans", couleur: "var(--accent)", points: D.pente_2_10 }] });
+}
+
+/* ---------- l'essentiel ---------- */
+function essentiel() {
+  const fr = D.dix_ans.FR, de = D.dix_ans.DE, e = ecart(fr, de), infl = D.inflation.FR.at(-1), bce = D.taux_depot_bce.at(-1);
+  const livret = D.livret_a.filter(([d]) => d <= D.courbe.dates.aujourd_hui).at(-1);
+  const cases = [
+    [nb(fr.at(-1)[1]) + " %", `OAT 10 ans, ${mois(fr.at(-1)[0])}`],
+    [signe(e.at(-1)[1]) + " pt", "Écart avec l'Allemagne"],
+    [nb(bce[1]) + " %", `Taux de dépôt de la BCE`],
+    [nb(infl[1], 1) + " %", `Inflation en France, ${mois(infl[0])}`],
+    [nb(livret[1]) + " %", "Livret A"],
+  ];
+  $("essentiel").innerHTML = cases.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join("");
+  $("meta").innerHTML = `Courbe au ${jour(D.courbe.dates.aujourd_hui)} · taux par pays : ${mois(fr.at(-1)[0])}<br>Mis à jour le ${jour(D.mis_a_jour.slice(0, 10))} à ${D.mis_a_jour.slice(11, 16).replace(":", " h ")} (UTC)<br><a href="https://github.com/gabinebyklein/observatoire-taux">Code source et méthode</a>`;
+}
+
+/* ---------- côté épargnants ---------- */
+function reels() {
+  const infl = D.inflation.FR;
+  const livretMois = infl.map(([m]) => [m, D.livret_a.filter(([d]) => d.slice(0, 7) <= m).at(-1)?.[1]]).filter(([, v]) => v != null);
+  graphe($("g-reels"), { zero: true, unite: " pt", hauteur: 330, largeur: 520, debut: "2008-08", series: [
+    { nom: "OAT 10 ans − inflation", couleur: "var(--fr)", points: ecart(D.dix_ans.FR, infl) },
+    { nom: "Livret A − inflation", couleur: "var(--es)", points: ecart(livretMois, infl) }] });
+  legende("l-reels", [["OAT 10 ans − inflation", "var(--fr)"], ["Livret A − inflation", "var(--es)"]]);
+  const moyenne = (s, a) => { const v = s.filter(([d]) => d.startsWith(a)).map(([, x]) => x); return v.length ? v.reduce((p, q) => p + q, 0) / v.length : null; };
+  $("t-fonds").innerHTML = `<tr><th>Année</th><th>Fonds euros</th><th>OAT 10 ans (moyenne)</th><th>Inflation (moyenne)</th></tr>`
+    + D.fonds_euros.map(([a, f]) => `<tr><td>${a}</td><td><b>${nb(f)} %</b></td><td>${nb(moyenne(D.dix_ans.FR, a))} %</td><td>${nb(moyenne(D.inflation.FR, a), 1)} %</td></tr>`).join("");
+}
+
+function client() {
+  const taux = D.dix_ans.FR.at(-1)[1], c = O.choc(10000, taux, 10, taux, 1.0).toJs({ dict_converter: Object.fromEntries });
+  const c5 = O.choc(10000, taux, 5, taux, 1.0).toJs({ dict_converter: Object.fromEntries });
+  const infl = D.inflation.FR.at(-1)[1], livret = D.livret_a.filter(([d]) => d <= D.courbe.dates.aujourd_hui).at(-1)[1];
+  $("client").innerHTML = `Une OAT à 10 ans achetée 10 000 € au taux actuel (${nb(taux)} %) perdrait environ <b>${euros(-c.variation_pct * 100)}</b>
+    si les taux montaient de 1 point (${nb(c.variation_pct, 1)} %), et une obligation à 5 ans environ <b>${euros(-c5.variation_pct * 100)}</b> :
+    plus l'échéance est longue, plus le risque est grand. Gardée jusqu'à l'échéance, elle rapporte bien ${nb(taux)} % par an.
+    <br><br>Avec une inflation de ${nb(infl, 1)} %, le Livret A à ${nb(livret)} % fait perdre ${nb(infl - livret, 1)} point de pouvoir d'achat par an ;
+    l'OAT 10 ans en fait gagner ${nb(taux - infl, 1)} point.`;
+}
+
+/* ---------- calculs en Python (Pyodide) ---------- */
+function position() {
+  const debut = $("debut").value, fin = $("fin").value || D.dix_ans.FR.at(-1)[0];
+  const r = A.rejouer_ecart(py.toPy(D.dix_ans.FR), py.toPy(D.dix_ans.DE), debut, fin);
+  if (!r) { $("r-position").innerHTML = "<div>Choisissez deux mois différents entre 1993 et aujourd'hui.</div>"; return; }
+  const x = r.toJs({ dict_converter: Object.fromEntries }); r.destroy();
+  const cls = x.resultat >= 0 ? "gain" : "perte";
+  $("r-position").innerHTML = `<div><b>${nb(x.ecart_entree)} → ${nb(x.ecart_sortie)} pt</b>Écart, ${mois(x.debut)} → ${mois(x.fin)}</div>`
+    + `<div><b>${signe(x.variation_pb, 0)} pb</b>Variation de l'écart (points de base)</div>`
+    + `<div><b>${euros(x.dv01)}</b>DV01 : gain ou perte par point de base</div>`
+    + `<div><b class="${cls}">${signe(x.resultat / 1000, 0)} k€</b>Résultat sur 10 M€</div>`
+    + `<div><b>${signe(x.pire[1] / 1000, 0)} k€</b>Pire moment (${mois(x.pire[0])})</div>`
+    + `<div><b>${signe(x.meilleur[1] / 1000, 0)} k€</b>Meilleur moment (${mois(x.meilleur[0])})</div>`;
+  graphe($("g-position"), { entier: true, zero: true, hauteur: 220, series: [{ nom: "Résultat", couleur: x.resultat >= 0 ? "var(--vert)" : "var(--rouge)", points: x.chemin }] });
+}
+
+function obligation() {
+  const n = +$("o-nominal").value, m = +$("o-mat").value, c = +$("o-cpn").value, t = +$("o-taux").value, k = +$("o-choc").value;
+  $("v-mat").textContent = m + (m > 1 ? " ans" : " an"); $("v-cpn").textContent = nb(c) + " %"; $("v-taux").textContent = nb(t) + " %";
+  $("v-choc").textContent = signe(k) + " pt";
+  if (!O) return;
+  const r = O.choc(n, c, m, t, k).toJs({ dict_converter: Object.fromEntries });
+  const cls = r.variation_pct >= 0 ? "gain" : "perte";
+  $("r-obligation").innerHTML = `<div><b>${euros(r.prix_avant)}</b>Prix aujourd'hui</div>`
+    + `<div><b class="${cls}">${euros(r.prix_apres)}</b>Prix après ${signe(k)} pt (${signe(r.variation_pct)} %)</div>`
+    + `<div><b>${euros(r.dv01)}</b>DV01 : par point de base</div>`
+    + `<div><b>${nb(r.duration_modifiee)}</b>Duration modifiée : % perdu par point de hausse</div>`
+    + `<div><b>${signe(r.approx_duration_pct)} %</b>Estimation par la duration seule</div>`
+    + `<div><b>${signe(r.approx_duration_convexite_pct)} %</b>Avec la convexité (plus proche du vrai)</div>`;
+}
+
+async function demarrer() {
+  for (const url of ["https://raw.githubusercontent.com/gabinebyklein/observatoire-taux/main/data/donnees.json", "data/donnees.json"]) {
+    try { const r = await fetch(url, { cache: "no-store" }); if (r.ok) { D = await r.json(); break; } } catch (e) {}
+  }
+  if (!D) { $("meta").textContent = "Données indisponibles : rechargez la page."; return; }
+  essentiel(); dessinerEcart(); dessinerCourbe(); dessinerPente(); reels();
+  const t = D.dix_ans.FR.at(-1)[1]; $("o-cpn").value = Math.round(t * 4) / 4; $("o-taux").value = t.toFixed(2); obligation();
+  try {
+    py = await loadPyodide();
+    py.FS.mkdirTree("/home/pyodide/observatoire");
+    for (const f of ["__init__.py", "obligations.py", "analyses.py", "reperes.py"])
+      py.FS.writeFile("/home/pyodide/observatoire/" + f, await (await fetch("observatoire/" + f)).text());
+    A = py.pyimport("observatoire.analyses"); O = py.pyimport("observatoire.obligations");
+    $("constats").innerHTML = A.lecture(py.toPy(D)).toJs({ dict_converter: Object.fromEntries }).map((c) => `<li>${c.texte}</li>`).join("");
+    position(); obligation(); client();
+  } catch (e) { $("constats").innerHTML = "<li>Le moteur de calcul n'a pas pu se charger : rechargez la page.</li>"; }
+}
+
+$("periode-ecart").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+  $("periode-ecart").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); periode = b.dataset.p; dessinerEcart();
+}));
+$("scenarios").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { $("debut").value = b.dataset.d; $("fin").value = b.dataset.f; A && position(); }));
+["debut", "fin"].forEach((id) => $(id).addEventListener("change", () => A && position()));
+document.querySelectorAll("#o-nominal, #o-mat, #o-cpn, #o-taux, #o-choc").forEach((el) => el.addEventListener("input", obligation));
+demarrer();
+</script>
+</body>
+</html>
