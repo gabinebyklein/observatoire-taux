@@ -1,0 +1,24 @@
+name: Mise à jour des données
+on:
+  schedule:
+    - cron: "30 18 * * 1-5"     # chaque soir de semaine, après la publication de la courbe BCE
+  workflow_dispatch:            # et à la demande, depuis l'onglet Actions
+permissions:
+  contents: write
+jobs:
+  mise-a-jour:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest certifi
+      - run: python -m observatoire.mettre_a_jour
+      - run: python -m pytest -q tests     # on ne publie pas des données qui cassent les calculs
+      - name: Enregistrer les nouvelles données
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/donnees.json
+          git diff --staged --quiet || (git commit -m "Données du $(date +%d/%m/%Y)" && git push)
