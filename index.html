@@ -339,7 +339,7 @@ function obligation() {
 }
 
 async function demarrer() {
-  for (const url of ["https://raw.githubusercontent.com/gabinebyklein/observatoire-taux/main/data/donnees.json", "data/donnees.json"]) {
+  for (const url of ["https://raw.githubusercontent.com/gabinebyklein/observatoire-taux/refs/heads/main/data/donnees.json", "data/donnees.json"]) {
     try { const r = await fetch(url, { cache: "no-store" }); if (r.ok) { D = await r.json(); break; } } catch (e) {}
   }
   if (!D) { $("meta").textContent = "Données indisponibles : rechargez la page."; return; }
